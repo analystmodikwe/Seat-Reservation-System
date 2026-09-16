@@ -11,6 +11,8 @@ export interface Seat {
 
 
 // Defines the possible states of a seat hold.
+// null once its confirmed because confirmed seats dont expire
+// boolean=true when created via waitlist promotion
 export type HoldStatus = "active" | "confirmed" | "expired" | "released";
 
 export interface Hold {
@@ -23,4 +25,9 @@ export interface Hold {
     expiresAt: number | null;
     extensionsUsed: number;
     isAutoPromotion: boolean;
+}
+
+export interface WaitlistEntry {
+    email: string;
+    joinedAt: number;
 }

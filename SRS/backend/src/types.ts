@@ -49,3 +49,17 @@ export interface EventLogEntry {
     email: string;
     holdCode?: string;
 }
+
+// shaping the API'S
+export interface PlaceHoldRequest {
+    email: string ;
+    seatNumber: number;
+}
+
+
+export interface HoldResponse {
+    code: string;
+    seatNumber: number;
+    expiresAt: number;
+}
+

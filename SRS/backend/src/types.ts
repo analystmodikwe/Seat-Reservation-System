@@ -72,5 +72,11 @@ export interface JoinWaitlistRequest {
     email: string;
 }
 
+// rule will check for wich rule was violated
+export interface ApiError {
+    rule: string;
+    message: string;
+}
+
 
 

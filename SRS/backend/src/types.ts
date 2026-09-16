@@ -11,8 +11,8 @@ export interface Seat {
 
 
 // Defines the possible states of a seat hold.
-// null once its confirmed because confirmed seats dont expire
-// boolean=true when created via waitlist promotion
+// null- once its confirmed because confirmed seats dont expire
+// boolean- true when created via waitlist promotion
 export type HoldStatus = "active" | "confirmed" | "expired" | "released";
 
 export interface Hold {
@@ -50,12 +50,13 @@ export interface EventLogEntry {
     holdCode?: string;
 }
 
-// shaping the API'S
+// shaping the API'S Defines the data expected when placing a seat hold.
 export interface PlaceHoldRequest {
     email: string ;
     seatNumber: number;
 }
 
+// Defines the data returned after successfully placing a hold.
 export interface HoldResponse {
     code: string;
     seatNumber: number;
@@ -68,11 +69,14 @@ export interface HoldActionRequest {
     code: string;
 }
 
+
+// Defines the data needed to join the waitlist.
 export interface JoinWaitlistRequest {
     email: string;
 }
 
 // rule will check for wich rule was violated
+// Defines the error information returned when a booking rule is violated.
 export interface ApiError {
     rule: string;
     message: string;

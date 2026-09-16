@@ -31,3 +31,21 @@ export interface WaitlistEntry {
     email: string;
     joinedAt: number;
 }
+
+// Defines the different actions that can be recorded in the event log.
+export type EventType = 
+    | "hold_placed"
+    | "hold_extended"
+    | "hold_confirmed"
+    | "hold_released"
+    | "hold_expired"
+    | "waitlist_joined"
+    | "waitlist_promoted";
+
+export interface EventLogEntry {
+    timestamp: number;
+    type: EventType;
+    seatNumber: number;
+    email: string;
+    holdCode?: string;
+}

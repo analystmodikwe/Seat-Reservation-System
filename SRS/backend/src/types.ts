@@ -4,7 +4,8 @@ export interface CodeRecord {
     createdAt: number;
     firstRecievedAt: number;
     expiresAt: number;
-
+    used: boolean;
+    resendCount: number;
 }
 
 export interface CodeHistory {

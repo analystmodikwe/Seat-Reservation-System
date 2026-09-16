@@ -68,5 +68,9 @@ export interface HoldActionRequest {
     code: string;
 }
 
+export interface JoinWaitlistRequest {
+    email: string;
+}
+
 
 

@@ -56,10 +56,17 @@ export interface PlaceHoldRequest {
     seatNumber: number;
 }
 
-
 export interface HoldResponse {
     code: string;
     seatNumber: number;
     expiresAt: number;
 }
+
+// extend, confirm or release
+export interface HoldActionRequest {
+    email: string;
+    code: string;
+}
+
+
 

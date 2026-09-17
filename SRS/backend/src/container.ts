@@ -24,3 +24,41 @@ const waitlistRepository = new InMemoryWaitlistRepository();
 const eventLogRepository = new InMemoryEventLogRepository();
 
 const codeGenerator = new HoldCodeGenerator(holdRepository);
+
+const holdService = new HoldService(
+    seatRepository,
+    holdRepository,
+    eventLogRepository,
+    codeGenerator,
+    lock,
+    clock
+);
+
+const waitlistService = new WaitlistService(
+    waitlistRepository,
+    seatRepository,
+    holdRepository,
+    eventLogRepository,
+    holdService,
+    clock
+);
+
+const expiryScheduler = new ExpiryScheduler(
+    holdRepository,
+    holdService,
+    waitlistService,
+    clock
+);
+
+export {
+    clock,
+    lock,
+    seatRepository,
+    holdRepository,
+    waitlistRepository,
+    eventLogRepository,
+    codeGenerator,
+    holdService,
+    waitlistService,
+    expiryScheduler,
+};

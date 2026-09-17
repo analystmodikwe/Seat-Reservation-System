@@ -1,5 +1,5 @@
 import { Clock } from "./clock";
-import { HoldService } from "./holdService";
+import { HoldService } from "./services/holdService";
 import { WaitlistService } from "./waitlistService";
 import { HoldRepository } from "./repositories/holdRepository";
 

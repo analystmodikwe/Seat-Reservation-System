@@ -1,17 +1,17 @@
 import { randomUUID } from "crypto";
-import { RESERVE_CONFIG } from "./config";
-import { Clock } from "./clock";
-import { CodeGenerator } from "./generators/holdCodeGenerator";
-import { Lock } from "./lock";
-import { HoldRepository } from "./repositories/holdRepository";
-import { SeatRepository } from "./repositories/seatRepository";
-import { EventLogRepository } from "./repositories/eventLogRepository";
+import { RESERVE_CONFIG } from "../config";
+import { Clock } from "../clock";
+import { CodeGenerator } from "../generators/holdCodeGenerator";
+import { Lock } from "../lock";
+import { HoldRepository } from "../repositories/holdRepository";
+import { SeatRepository } from "../repositories/seatRepository";
+import { EventLogRepository } from "../repositories/eventLogRepository";
 import {
   Hold,
   HoldResponse,
   PlaceHoldRequest,
   HoldActionRequest,
-} from "./types";
+} from "../types";
 
 // this will be thrown when a request breaks one of the reservation rules
 // the "rule" will give our API a meaningful error that names which rule was violated

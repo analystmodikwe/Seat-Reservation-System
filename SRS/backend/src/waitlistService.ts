@@ -1,6 +1,6 @@
 import { Clock } from "./clock";
-import { DomainError } from "./holdService";
-import { HoldService } from "./holdService";
+import { DomainError } from "./services/holdService";
+import { HoldService } from "./services/holdService";
 import { HoldRepository } from "./repositories/holdRepository";
 import { SeatRepository } from "./repositories/seatRepository";
 import { WaitlistRepository } from "./repositories/waitlistRepository";

@@ -14,7 +14,7 @@ router.post("/", async (req, res) => {
     } catch (error) {
         handleError(error, res);
     }
-});
+}); 
 
 // Extend a hold
 router.post("/extend", async (req, res) => {

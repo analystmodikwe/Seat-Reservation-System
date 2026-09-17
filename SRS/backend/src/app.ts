@@ -1,5 +1,6 @@
+// app.ts
 import express from "express";
-
+import cors from "cors";
 import seatRoutes from "./routes/seatRoutes";
 import holdRoutes from "./routes/holdRoutes";
 import waitlistRoutes from "./routes/waitlistRoutes";
@@ -7,9 +8,9 @@ import eventLogRoutes from "./routes/eventLogRoutes";
 
 const app = express();
 
+app.use(cors());
 app.use(express.json());
 
-// Register routes
 app.use("/seats", seatRoutes);
 app.use("/holds", holdRoutes);
 app.use("/waitlist", waitlistRoutes);

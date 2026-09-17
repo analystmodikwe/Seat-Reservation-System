@@ -1,7 +1,7 @@
-import { Clock } from "./clock";
-import { HoldService } from "./services/holdService";
-import { WaitlistService } from "./services/waitlistService";
-import { HoldRepository } from "./repositories/holdRepository";
+import { Clock } from "../clock";
+import { HoldService } from "./holdService";
+import { WaitlistService } from "./waitlistService";
+import { HoldRepository } from "../repositories/holdRepository";
 
 // Periodically checks for holds that have passed their expiry time,
 // expires them, and offers the freed seat to the next person waiting.

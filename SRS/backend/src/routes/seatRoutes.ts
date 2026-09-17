@@ -1,12 +1,13 @@
+// src/routes/seatRoutes.ts
 import { Router } from "express";
+import { seatRepository } from "../container";
 
 const router = Router();
 
-// GET /seats
+// Get all seats and their current status
 router.get("/", (req, res) => {
-    res.json({
-        message: "Get all seats",
-    });
+    const seats = seatRepository.getAllSeats();
+    res.status(200).json(seats);
 });
 
 export default router;

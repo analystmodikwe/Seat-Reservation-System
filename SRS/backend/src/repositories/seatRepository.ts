@@ -13,3 +13,22 @@ export interface SeatRepository {
         holdId?: string
     ): void;
 }
+
+// storing seats in memory using map
+// creating seats when repository is creted
+export class InMemorySeatRepository implements SeatRepository {
+
+    private seats: Map<number, Seat> = new Map();
+
+     constructor(numberOfSeats: number) {
+
+        for (let i = 1; i <= numberOfSeats; i++) {
+
+            this.seats.set(i, {
+                number: i,
+                status: "available",
+            });
+        }
+    }
+
+}

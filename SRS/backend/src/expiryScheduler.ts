@@ -34,4 +34,27 @@ export class ExpiryScheduler {
             this.intervalHandle = null;
         }
     }
+
+     // Exposed separately from start() so tests can call one sweep
+    // directly, using a FakeClock, without waiting on a real interval.
+    async runOnce(): Promise<void> {
+        const now = this.clock.now();
+        const activeHolds = this.holdRepository.findAllActive();
+
+        const expiredHolds = activeHolds.filter(
+            (hold) => hold.expiresAt !== null && hold.expiresAt < now
+        );
+
+        for (const hold of expiredHolds) {
+            const freedSeatNumber = await this.holdService.expireHold(hold.id);
+
+            // expireHold re-checks state under its own lock and can return
+            // null if the hold was extended/confirmed/released in the gap
+            // between this scan and the lock being acquired — nothing to
+            // promote in that case
+            if (freedSeatNumber !== null) {
+                await this.waitlistService.promoteNext(freedSeatNumber);
+            }
+        }
+    }
 }

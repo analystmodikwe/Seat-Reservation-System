@@ -6,11 +6,13 @@ const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
 // This lets components branch on the rule (e.g. show the waitlist
 // button when SEAT_UNAVAILABLE) instead of string-matching messages.
 export class ApiError extends Error {
-  constructor(
-    public rule: string,
-    message: string,
-  ) {
+  rule: string;
+  message: string;
+
+  constructor(rule: string, message: string) {
     super(message);
+    this.rule = rule;
+    this.message = message;
     this.name = "ApiError";
   }
 }

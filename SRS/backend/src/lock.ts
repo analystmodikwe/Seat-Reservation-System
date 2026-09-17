@@ -15,5 +15,26 @@ export class InMemoryLock implements Lock {
             this.locked.add(key);
             return Promise.resolve();
         }
+
+        // already held - queue up and wait for your turn
+        return new Promise<void>((resolve) => {
+            const queue = this.waiters.get(key) ?? [];
+            queue.push(resolve);
+            this.waiters.set(key, queue);
+        });
     }
-}
+
+    release(key: number): void {
+        const queue = this.waiters.get(key);
+
+        if (queue && queue.length > 0) {
+            // Hand the lock directly to the next waiter in line —
+            // key stays in `locked` the whole time, it just changes hands.
+            const next = queue.shift()!;
+            next();
+        } else {
+            this.locked.delete(key);
+        }
+    }
+
+}   

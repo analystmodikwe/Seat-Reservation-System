@@ -113,6 +113,60 @@ export class HoldService {
     }
   }
 
+  private buildAndStoreHold(
+        seatNumber: number,
+        email: string,
+        isAutoPromotion: boolean,
+        eventType: "hold_placed" | "waitlist_promoted"
+    ): HoldResponse {
+        const code = this.codeGenerator.generateCode();
+        const now = this.clock.now();
+
+        const hold: Hold = {
+            id: randomUUID(),
+            code,
+            seatNumber,
+            email,
+            status: "active",
+            createdAt: now,
+            expiresAt: now + RESERVE_CONFIG.HOLD_EXPIRY_TIME_SECONDS * 1000,
+            extensionsUsed: 0,
+            isAutoPromotion,
+        };
+
+        this.holdRepository.create(hold);
+        this.seatRepository.updateSeatStatus(seatNumber, "held", hold.id);
+        this.eventLogRepository.append({
+            timestamp: now,
+            type: eventType,
+            seatNumber,
+            email,
+            holdCode: code,
+        });
+
+        return { code: hold.code, seatNumber: hold.seatNumber, expiresAt: hold.expiresAt };
+    }
+
+    // NEW — placeAutoHold goes right after the helper, since it's the only other caller
+    async placeAutoHold(seatNumber: number, email: string): Promise<HoldResponse> {
+        await this.lock.acquire(seatNumber);
+
+        try {
+            const seat = this.seatRepository.getSeat(seatNumber);
+
+            if (!seat || seat.status !== "available") {
+                throw new DomainError(
+                    "SEAT_UNAVAILABLE",
+                    `Seat ${seatNumber} is not available for auto-promotion.`
+                );
+            }
+
+            return this.buildAndStoreHold(seatNumber, email, true, "waitlist_promoted");
+        } finally {
+            this.lock.release(seatNumber);
+        }
+    }
+
   // extending the hold
   async extendHold(request: HoldActionRequest): Promise<HoldResponse> {
     const { email, code } = request;

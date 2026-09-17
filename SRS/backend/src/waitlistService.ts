@@ -56,4 +56,26 @@ export class WaitlistService {
             email,
         });
     }
+
+     async promoteNext(seatNumber: number): Promise<void> {
+        // pull the longest-waiting user off the queue
+        const nextInLine = this.waitlistRepository.removeFirst();
+
+        // nobody waiting — nothing to do, seat just stays available
+        if (!nextInLine) {
+            return;
+        }
+
+        const holdResponse = await this.holdService.placeAutoHold(seatNumber, nextInLine.email);
+
+        // "sending a notification" per the spec just means a clear log line for now
+        console.log(
+            `Seat ${seatNumber} offered to ${nextInLine.email} — hold code ${holdResponse.code}, expires at ${new Date(
+                holdResponse.expiresAt!
+            ).toISOString()}`
+        );
+    }
 }
+
+
+

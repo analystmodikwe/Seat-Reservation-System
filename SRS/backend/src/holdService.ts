@@ -325,7 +325,7 @@ export class HoldService {
     }
   }
 
-  async releaseHold(request: HoldActionRequest): Promise<void> {
+  async releaseHold(request: HoldActionRequest): Promise<number> {
     const { email, code } = request;
 
     // find the hold by its code, if it doesn't exist there's nothing to release
@@ -368,6 +368,7 @@ export class HoldService {
             email: hold.email,
             holdCode: hold.code,
         });
+        return hold.seatNumber; 
     } finally {
         // always free the lock, even if one of the checks above threw
         this.lock.release(hold.seatNumber);

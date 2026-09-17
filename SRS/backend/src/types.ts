@@ -60,7 +60,7 @@ export interface PlaceHoldRequest {
 export interface HoldResponse {
     code: string;
     seatNumber: number;
-    expiresAt: number;
+    expiresAt: number | null;
 }
 
 // extend, confirm or release

@@ -46,4 +46,11 @@ export class InMemoryHoldRepository implements HoldRepository {
         this.holds.set(hold.code, hold);
     }
 
+    // updating the existing hold
+    // set() replace the existing hold with the updated one when the same hold code already exists
+    
+    update(hold: Hold): void {
+        this.holds.set(hold.code, hold);
+    }
 }
+

@@ -45,7 +45,7 @@ export type EventType =
 export interface EventLogEntry {
     timestamp: number;
     type: EventType;
-    seatNumber: number;
+    seatNumber?: number;
     email: string;
     holdCode?: string;
 }

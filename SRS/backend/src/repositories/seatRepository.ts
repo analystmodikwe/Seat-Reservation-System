@@ -31,6 +31,11 @@ export class InMemorySeatRepository implements SeatRepository {
         }
     }
 
+    // finding a sit by number or undefined if it doesnt exist
+    getSeat(seatNumber: number): Seat | undefined {
+        return this.seats.get(seatNumber);
+    }
+
     // Returns all the seats as an array.
     getAllSeats(): Seat[] {
         return [...this.seats.values()];

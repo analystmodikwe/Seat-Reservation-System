@@ -16,4 +16,44 @@ export class WaitlistService {
         private holdService: HoldService,
         private clock: Clock
     ) {}
+
+    async joinWaitlist(request: JoinWaitlistRequest): Promise<void> {
+        const { email } = request;
+
+        // joining only makes sense when every seat is taken — if one's free,
+        // the user should just place a hold instead
+        const seats = this.seatRepository.getAllSeats();
+        const hasAvailableSeat = seats.some((seat) => seat.status === "available");
+        if (hasAvailableSeat) {
+            throw new DomainError(
+                "SEATS_AVAILABLE",
+                "There are still available seats — place a hold instead of joining the waitlist."
+            );
+        }
+
+        if (this.waitlistRepository.contains(email)) {
+            throw new DomainError("ALREADY_ON_WAITLIST", "You are already on the waitlist.");
+        }
+
+        // can't join if you already have an active hold or a confirmed seat
+        const existingHolds = this.holdRepository.findByEmail(email);
+        const hasExisting = existingHolds.some(
+            (hold) => hold.status === "active" || hold.status === "confirmed"
+        );
+        if (hasExisting) {
+            throw new DomainError(
+                "HAS_EXISTING_HOLD",
+                "You already have an active hold or a confirmed seat."
+            );
+        }
+
+        const now = this.clock.now();
+        this.waitlistRepository.add({ email, joinedAt: now });
+
+        this.eventLogRepository.append({
+            timestamp: now,
+            type: "waitlist_joined",
+            email,
+        });
+    }
 }

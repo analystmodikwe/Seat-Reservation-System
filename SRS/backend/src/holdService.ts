@@ -270,4 +270,53 @@ export class HoldService {
       this.lock.release(hold.seatNumber);
     }
   }
+
+  async releaseHold(request: HoldActionRequest): Promise<void> {
+    const { email, code } = request;
+
+    // find the hold by its code, if it doesn't exist there's nothing to release
+    const hold = this.holdRepository.findByCode(code);
+
+    if (!hold) {
+        throw new DomainError("HOLD_NOT_FOUND", `No hold found for code ${code}.`);
+    }
+
+    // lock the seat so nothing else can change it mid-release
+    // (e.g. the expiry scheduler or another release request at the same time)
+    await this.lock.acquire(hold.seatNumber);
+
+    try {
+        // only the person who placed (or now holds/confirmed) this can release it
+        if (hold.email !== email) {
+            throw new DomainError("EMAIL_MISMATCH", "This email does not match the hold.");
+        }
+
+        // can't release something that's already been released or expired
+        if (hold.status === "released" || hold.status === "expired") {
+            throw new DomainError("HOLD_NOT_ACTIVE", "This hold is no longer active.");
+        }
+
+        const now = this.clock.now();
+
+        // mark the hold as released and clear its expiry, this code can never be used again
+        hold.status = "released";
+        hold.expiresAt = null;
+        this.holdRepository.update(hold);
+
+        // free the seat back up, no hold id attached to it anymore
+        this.seatRepository.updateSeatStatus(hold.seatNumber, "available", undefined);
+
+        // record what just happened so the event log can rebuild this later
+        this.eventLogRepository.append({
+            timestamp: now,
+            type: "hold_released",
+            seatNumber: hold.seatNumber,
+            email: hold.email,
+            holdCode: hold.code,
+        });
+    } finally {
+        // always free the lock, even if one of the checks above threw
+        this.lock.release(hold.seatNumber);
+    }
+}
 }

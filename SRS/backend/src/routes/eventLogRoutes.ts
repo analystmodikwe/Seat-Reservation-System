@@ -1,19 +1,20 @@
+// src/routes/eventLogRoutes.ts
 import { Router } from "express";
+import { eventLogRepository } from "../container";
 
 const router = Router();
 
 // Get all event log entries
 router.get("/", (req, res) => {
-    res.json({
-        message: "Get all event logs",
-    });
+    const entries = eventLogRepository.getAll();
+    res.status(200).json(entries);
 });
 
-// Get event logs for a specific seat
+// Get event log entries for a specific seat
 router.get("/seat/:seatNumber", (req, res) => {
-    res.json({
-        message: `Get logs for seat ${req.params.seatNumber}`,
-    });
+    const seatNumber = Number(req.params.seatNumber);
+    const entries = eventLogRepository.getBySeat(seatNumber);
+    res.status(200).json(entries);
 });
 
 export default router;

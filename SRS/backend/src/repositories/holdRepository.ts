@@ -7,6 +7,7 @@ import { Hold, HoldStatus } from '../types';
 export interface HoldRepository {
     findByCode(code: string): Hold | undefined;
     findActiveByEmail(email: string): Hold[];
+    findByEmail(email: string): Hold[];
     countByEmailSince(email: string, since: number): number;
     create(hold: Hold): void;
     update(hold: Hold): void;
@@ -29,6 +30,10 @@ export class InMemoryHoldRepository implements HoldRepository {
         return [...this.holds.values()].filter(
             (hold) => hold.email === email && hold.status === 'active'
         );
+    }
+
+     findByEmail(email: string): Hold[] {
+        return [...this.holds.values()].filter((hold) => hold.email === email);
     }
 
     // i am counting how many holds an email has created since a specifi time

@@ -39,5 +39,11 @@ export class InMemoryHoldRepository implements HoldRepository {
         ).length;
     }
 
+    //created and stores a new hold 
+    // uses the holds code as the map key
+    // and the entire hold object as the value
+    create(hold: Hold): void {
+        this.holds.set(hold.code, hold);
+    }
 
 }

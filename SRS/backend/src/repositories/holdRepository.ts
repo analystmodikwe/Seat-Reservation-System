@@ -9,6 +9,7 @@ export interface HoldRepository {
   findActiveByEmail(email: string): Hold[];
   findByEmail(email: string): Hold[];
   findById(id: string): Hold | undefined;
+  findAllActive(): Hold[];
   countByEmailSince(email: string, since: number): number;
   create(hold: Hold): void;
   update(hold: Hold): void;
@@ -39,6 +40,9 @@ export class InMemoryHoldRepository implements HoldRepository {
   findById(id: string): Hold | undefined {
     return [...this.holds.values()].find((hold) => hold.id === id);
   }
+  findAllActive(): Hold[] {
+    return [...this.holds.values()].filter((hold) => hold.status === "active");
+}
 
   // i am counting how many holds an email has created since a specifi time
   // get all holds keep only the holds that were created after the since timestamp and count how many remain

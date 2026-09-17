@@ -11,3 +11,25 @@ export interface HoldRepository {
     create(hold: Hold): void;
     update(hold: Hold): void;
 }
+
+
+// this will be my database replacement, the in-memory implementation of hold repository storing the holds in a map
+
+// stores holds using the hold code as the key
+// look for a hold by its code and map will return it if the code exists
+export class InMemoryHoldRepository implements HoldRepository {
+    private holds: Map<string, Hold> = new Map();
+    findByCode(code: string): Hold | undefined {
+        return this.holds.get(code);
+    }
+
+    // finding active holds belonging to a specific email
+    // get all objects stored in map then keep only those with matching email and active status
+    findActiveByEmail(email: string): Hold[] {
+        return [...this.holds.values()].filter(
+            (hold) => hold.email === email && hold.status === 'active'
+        );
+    }
+
+    
+}

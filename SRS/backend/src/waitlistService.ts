@@ -6,3 +6,14 @@ import { SeatRepository } from "./repositories/seatRepository";
 import { WaitlistRepository } from "./repositories/waitlistRepository";
 import { EventLogRepository } from "./repositories/eventLogRepository";
 import { JoinWaitlistRequest } from "./types";
+
+export class WaitlistService {
+    constructor(
+        private waitlistRepository: WaitlistRepository,
+        private seatRepository: SeatRepository,
+        private holdRepository: HoldRepository,
+        private eventLogRepository: EventLogRepository,
+        private holdService: HoldService,
+        private clock: Clock
+    ) {}
+}

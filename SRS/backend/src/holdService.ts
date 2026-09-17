@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import { RESERVE_CONFIG } from "./config";
 import { Clock } from "./clock";
-import { CodeGenerator } from "./holdCodeGenerator";
+import { CodeGenerator } from "./generators/holdCodeGenerator";
 import { Lock } from "./lock";
 import { HoldRepository } from "./repositories/holdRepository";
 import { SeatRepository } from "./repositories/seatRepository";

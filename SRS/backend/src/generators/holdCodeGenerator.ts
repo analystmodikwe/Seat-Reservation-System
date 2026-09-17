@@ -1,5 +1,5 @@
-import {  RESERVE_CONFIG } from "./config";
-import{ HoldRepository } from "./repositories/holdRepository";
+import {  RESERVE_CONFIG } from "../config";
+import{ HoldRepository } from "../repositories/holdRepository";
 
 
 // here i am going to generate a 6 char code from the RESERVE_CONFIG.HOLD_CODE_CHARACTERS But it must follow the rules of RESERVE_CONFIG.HOLD_CODE_CHARACTERS it shouldnt contain any similar looking characters like 0 and O, 1 and I, L and 1, etc.

@@ -1,4 +1,4 @@
-import { Hold } from '../types';
+import { Hold, HoldStatus } from '../types';
 
 // finding a hold by its unique hold code returning that hold if found
 // finding all active holds belonging to a specific email

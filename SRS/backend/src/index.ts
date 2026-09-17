@@ -1,13 +1,7 @@
-import express from "express";
-import cors from "cors"
-
-const app = express();
-
-app.use(cors())
-
-app.use(express. json());
+// index.ts
+import app from "./app";
 
 const PORT = process.env.PORT ?? 5000;
-app.listen(PORT, () =>{
-    console.log(`server is running on http://localhost:${PORT}`)
+app.listen(PORT, () => {
+    console.log(`server is running on http://localhost:${PORT}`);
 });

@@ -31,4 +31,32 @@ export class InMemorySeatRepository implements SeatRepository {
         }
     }
 
+    // Returns all the seats as an array.
+    getAllSeats(): Seat[] {
+        return [...this.seats.values()];
+    }
+
+     // Changes the status of a seat.
+    updateSeatStatus(
+        seatNumber: number,
+        status: SeatStatus,
+        holdId?: string
+    ): void {
+
+        const seat = this.seats.get(seatNumber);
+
+        // Do nothing if the seat doesn't exist.
+        if (!seat) {
+            return;
+        }
+
+        // Update the seat's status.
+        seat.status = status;
+
+        // Update the hold ID if one was provided.
+        seat.holdId = holdId;
+    }
+
+
+
 }

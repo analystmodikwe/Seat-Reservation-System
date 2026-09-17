@@ -31,5 +31,13 @@ export class InMemoryHoldRepository implements HoldRepository {
         );
     }
 
-    
+    // i am counting how many holds an email has created since a specifi time
+    // get all holds keep only the holds that were created after the since timestamp and count how many remain
+    countByEmailSince(email: string, since: number): number {
+        return [...this.holds.values()].filter(
+            (hold) => hold.email === email && hold.createdAt >= since
+        ).length;
+    }
+
+
 }

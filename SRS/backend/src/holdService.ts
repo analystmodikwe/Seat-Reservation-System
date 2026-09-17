@@ -228,7 +228,7 @@ export class HoldService {
         return {
           code: hold.code,
           seatNumber: hold.seatNumber,
-          expiresAt: hold.expiresAt ?? 0,
+          expiresAt: hold.expiresAt,
         };
       }
 
@@ -247,7 +247,8 @@ export class HoldService {
       }
 
       hold.status = "confirmed";
-      hold.expiresAt = null; // confirmed seats no longer expire
+      // confirmed seats no longer expire
+      hold.expiresAt = null; 
       this.holdRepository.update(hold);
 
       this.seatRepository.updateSeatStatus(

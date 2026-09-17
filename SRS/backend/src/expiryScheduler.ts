@@ -1,6 +1,6 @@
 import { Clock } from "./clock";
 import { HoldService } from "./services/holdService";
-import { WaitlistService } from "./waitlistService";
+import { WaitlistService } from "./services/waitlistService";
 import { HoldRepository } from "./repositories/holdRepository";
 
 // Periodically checks for holds that have passed their expiry time,

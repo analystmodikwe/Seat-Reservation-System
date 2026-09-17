@@ -1,4 +1,4 @@
-// src/routes/seatRoutes.ts
+
 import { Router } from "express";
 import { seatRepository } from "../container";
 

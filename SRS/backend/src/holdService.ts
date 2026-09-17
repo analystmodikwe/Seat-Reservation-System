@@ -114,58 +114,70 @@ export class HoldService {
   }
 
   private buildAndStoreHold(
-        seatNumber: number,
-        email: string,
-        isAutoPromotion: boolean,
-        eventType: "hold_placed" | "waitlist_promoted"
-    ): HoldResponse {
-        const code = this.codeGenerator.generateCode();
-        const now = this.clock.now();
+    seatNumber: number,
+    email: string,
+    isAutoPromotion: boolean,
+    eventType: "hold_placed" | "waitlist_promoted",
+  ): HoldResponse {
+    const code = this.codeGenerator.generateCode();
+    const now = this.clock.now();
 
-        const hold: Hold = {
-            id: randomUUID(),
-            code,
-            seatNumber,
-            email,
-            status: "active",
-            createdAt: now,
-            expiresAt: now + RESERVE_CONFIG.HOLD_EXPIRY_TIME_SECONDS * 1000,
-            extensionsUsed: 0,
-            isAutoPromotion,
-        };
+    const hold: Hold = {
+      id: randomUUID(),
+      code,
+      seatNumber,
+      email,
+      status: "active",
+      createdAt: now,
+      expiresAt: now + RESERVE_CONFIG.HOLD_EXPIRY_TIME_SECONDS * 1000,
+      extensionsUsed: 0,
+      isAutoPromotion,
+    };
 
-        this.holdRepository.create(hold);
-        this.seatRepository.updateSeatStatus(seatNumber, "held", hold.id);
-        this.eventLogRepository.append({
-            timestamp: now,
-            type: eventType,
-            seatNumber,
-            email,
-            holdCode: code,
-        });
+    this.holdRepository.create(hold);
+    this.seatRepository.updateSeatStatus(seatNumber, "held", hold.id);
+    this.eventLogRepository.append({
+      timestamp: now,
+      type: eventType,
+      seatNumber,
+      email,
+      holdCode: code,
+    });
 
-        return { code: hold.code, seatNumber: hold.seatNumber, expiresAt: hold.expiresAt };
+    return {
+      code: hold.code,
+      seatNumber: hold.seatNumber,
+      expiresAt: hold.expiresAt,
+    };
+  }
+
+  // NEW — placeAutoHold goes right after the helper, since it's the only other caller
+  async placeAutoHold(
+    seatNumber: number,
+    email: string,
+  ): Promise<HoldResponse> {
+    await this.lock.acquire(seatNumber);
+
+    try {
+      const seat = this.seatRepository.getSeat(seatNumber);
+
+      if (!seat || seat.status !== "available") {
+        throw new DomainError(
+          "SEAT_UNAVAILABLE",
+          `Seat ${seatNumber} is not available for auto-promotion.`,
+        );
+      }
+
+      return this.buildAndStoreHold(
+        seatNumber,
+        email,
+        true,
+        "waitlist_promoted",
+      );
+    } finally {
+      this.lock.release(seatNumber);
     }
-
-    // NEW — placeAutoHold goes right after the helper, since it's the only other caller
-    async placeAutoHold(seatNumber: number, email: string): Promise<HoldResponse> {
-        await this.lock.acquire(seatNumber);
-
-        try {
-            const seat = this.seatRepository.getSeat(seatNumber);
-
-            if (!seat || seat.status !== "available") {
-                throw new DomainError(
-                    "SEAT_UNAVAILABLE",
-                    `Seat ${seatNumber} is not available for auto-promotion.`
-                );
-            }
-
-            return this.buildAndStoreHold(seatNumber, email, true, "waitlist_promoted");
-        } finally {
-            this.lock.release(seatNumber);
-        }
-    }
+  }
 
   // extending the hold
   async extendHold(request: HoldActionRequest): Promise<HoldResponse> {
@@ -302,7 +314,7 @@ export class HoldService {
 
       hold.status = "confirmed";
       // confirmed seats no longer expire
-      hold.expiresAt = null; 
+      hold.expiresAt = null;
       this.holdRepository.update(hold);
 
       this.seatRepository.updateSeatStatus(
@@ -332,7 +344,10 @@ export class HoldService {
     const hold = this.holdRepository.findByCode(code);
 
     if (!hold) {
-        throw new DomainError("HOLD_NOT_FOUND", `No hold found for code ${code}.`);
+      throw new DomainError(
+        "HOLD_NOT_FOUND",
+        `No hold found for code ${code}.`,
+      );
     }
 
     // lock the seat so nothing else can change it mid-release
@@ -340,38 +355,98 @@ export class HoldService {
     await this.lock.acquire(hold.seatNumber);
 
     try {
-        // only the person who placed (or now holds/confirmed) this can release it
-        if (hold.email !== email) {
-            throw new DomainError("EMAIL_MISMATCH", "This email does not match the hold.");
-        }
+      // only the person who placed (or now holds/confirmed) this can release it
+      if (hold.email !== email) {
+        throw new DomainError(
+          "EMAIL_MISMATCH",
+          "This email does not match the hold.",
+        );
+      }
 
-        // can't release something that's already been released or expired
-        if (hold.status === "released" || hold.status === "expired") {
-            throw new DomainError("HOLD_NOT_ACTIVE", "This hold is no longer active.");
-        }
+      // can't release something that's already been released or expired
+      if (hold.status === "released" || hold.status === "expired") {
+        throw new DomainError(
+          "HOLD_NOT_ACTIVE",
+          "This hold is no longer active.",
+        );
+      }
 
-        const now = this.clock.now();
+      const now = this.clock.now();
 
-        // mark the hold as released and clear its expiry, this code can never be used again
-        hold.status = "released";
-        hold.expiresAt = null;
-        this.holdRepository.update(hold);
+      // mark the hold as released and clear its expiry, this code can never be used again
+      hold.status = "released";
+      hold.expiresAt = null;
+      this.holdRepository.update(hold);
 
-        // free the seat back up, no hold id attached to it anymore
-        this.seatRepository.updateSeatStatus(hold.seatNumber, "available", undefined);
+      // free the seat back up, no hold id attached to it anymore
+      this.seatRepository.updateSeatStatus(
+        hold.seatNumber,
+        "available",
+        undefined,
+      );
 
-        // record what just happened so the event log can rebuild this later
-        this.eventLogRepository.append({
-            timestamp: now,
-            type: "hold_released",
-            seatNumber: hold.seatNumber,
-            email: hold.email,
-            holdCode: hold.code,
-        });
-        return hold.seatNumber; 
+      // record what just happened so the event log can rebuild this later
+      this.eventLogRepository.append({
+        timestamp: now,
+        type: "hold_released",
+        seatNumber: hold.seatNumber,
+        email: hold.email,
+        holdCode: hold.code,
+      });
+      return hold.seatNumber;
     } finally {
-        // always free the lock, even if one of the checks above threw
-        this.lock.release(hold.seatNumber);
+      // always free the lock, even if one of the checks above threw
+      this.lock.release(hold.seatNumber);
     }
-}
+  }
+
+  async expireHold(holdId: string): Promise<number | null> {
+    const hold = this.holdRepository.findById(holdId);
+
+    if (!hold || hold.status !== "active") {
+      // already handled, confirmed, or doesn't exist — nothing to do
+      return null;
+    }
+
+    await this.lock.acquire(hold.seatNumber);
+
+    try {
+      // re-check after acquiring the lock — someone may have confirmed,
+      // extended, or released it between the scheduler's scan and now
+      const current = this.holdRepository.findById(holdId);
+
+      if (!current || current.status !== "active") {
+        return null;
+      }
+
+      const now = this.clock.now();
+
+      if (current.expiresAt === null || current.expiresAt > now) {
+        // it was extended after the scheduler picked it up — not actually expired
+        return null;
+      }
+
+      current.status = "expired";
+      current.expiresAt = null;
+      this.holdRepository.update(current);
+
+      this.seatRepository.updateSeatStatus(
+        current.seatNumber,
+        "available",
+        undefined,
+      );
+
+      this.eventLogRepository.append({
+        timestamp: now,
+        type: "hold_expired",
+        seatNumber: current.seatNumber,
+        email: current.email,
+        holdCode: current.code,
+      });
+
+      return current.seatNumber;
+    } finally {
+      this.lock.release(hold.seatNumber);
+    }
+  }
 }

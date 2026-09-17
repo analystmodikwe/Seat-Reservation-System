@@ -6,7 +6,12 @@ import { Lock } from "./lock";
 import { HoldRepository } from "./repositories/holdRepository";
 import { SeatRepository } from "./repositories/seatRepository";
 import { EventLogRepository } from "./repositories/eventLogRepository";
-import { Hold, HoldResponse, PlaceHoldRequest,  HoldActionRequest } from "./types";
+import {
+  Hold,
+  HoldResponse,
+  PlaceHoldRequest,
+  HoldActionRequest,
+} from "./types";
 
 // this will be thrown when a request breaks one of the reservation rules
 // the "rule" will give our API a meaningful error that names which rule was violated
@@ -189,6 +194,78 @@ export class HoldService {
       };
     } finally {
       // always free the lock, even if one of the checks above threw
+      this.lock.release(hold.seatNumber);
+    }
+  }
+
+  // my  idempotency rule will happen here
+  async confirmHold(request: HoldActionRequest): Promise<HoldResponse> {
+    const { email, code } = request;
+
+    const hold = this.holdRepository.findByCode(code);
+
+    if (!hold) {
+      throw new DomainError(
+        "HOLD_NOT_FOUND",
+        `No hold found for code ${code}.`,
+      );
+    }
+
+    await this.lock.acquire(hold.seatNumber);
+
+    try {
+      if (hold.email !== email) {
+        throw new DomainError(
+          "EMAIL_MISMATCH",
+          "This email does not match the hold.",
+        );
+      }
+
+      // idempotency: confirming an already-confirmed hold with the
+      // same email+code just returns the same result again, no error,
+      // no state change, no new event log entry
+      if (hold.status === "confirmed") {
+        return {
+          code: hold.code,
+          seatNumber: hold.seatNumber,
+          expiresAt: hold.expiresAt ?? 0,
+        };
+      }
+
+      if (hold.status === "released" || hold.status === "expired") {
+        throw new DomainError(
+          "HOLD_NOT_ACTIVE",
+          "This hold is no longer active.",
+        );
+      }
+
+      const now = this.clock.now();
+
+      // still need to catch the "expired but scheduler hasn't swept it yet" case
+      if (hold.expiresAt !== null && hold.expiresAt < now) {
+        throw new DomainError("HOLD_EXPIRED", "This hold has already expired.");
+      }
+
+      hold.status = "confirmed";
+      hold.expiresAt = null; // confirmed seats no longer expire
+      this.holdRepository.update(hold);
+
+      this.seatRepository.updateSeatStatus(
+        hold.seatNumber,
+        "confirmed",
+        hold.id,
+      );
+
+      this.eventLogRepository.append({
+        timestamp: now,
+        type: "hold_confirmed",
+        seatNumber: hold.seatNumber,
+        email: hold.email,
+        holdCode: hold.code,
+      });
+
+      return { code: hold.code, seatNumber: hold.seatNumber, expiresAt: 0 };
+    } finally {
       this.lock.release(hold.seatNumber);
     }
   }

@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { api, ApiRequestError } from "../api/client";
-import { HoldResponse } from "../api/types";
+import type { HoldResponse } from "../api/types";
 
 // Wraps the four hold actions (place/extend/confirm/release) with
 // shared loading/error state, so components don't repeat try/catch

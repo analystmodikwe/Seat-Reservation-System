@@ -1,32 +1,34 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { api } from "../api/client";
-import type { Seat } from "../api/types";
+import { Seat } from "../api/types";
 
-export function useSeats(pollMs = 2000) {
-  const [seats, setSeats] = useState<Seat[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+const POLL_INTERVAL_MS = 2000;
 
-  // useCallback so the identity is stable and the effect below
-  // doesn't re-subscribe on every render.
-  const refresh = useCallback(async () => {
-    try {
-      setSeats(await api.getSeats());
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load seats");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+// Polls GET /seats on an interval so the seat map reflects holds
+// expiring or being released without the user reloading — the spec
+// explicitly allows polling instead of requiring websockets.
+export function useSeats() {
+    const [seats, setSeats] = useState<Seat[]>([]);
+    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    refresh(); // fetch immediately, don't wait a full interval
-    const id = setInterval(refresh, pollMs);
-    return () => clearInterval(id); // cleanup stops the timer on unmount
-  }, [refresh, pollMs]);
+    const fetchSeats = useCallback(async () => {
+        try {
+            const result = await api.getSeats();
+            setSeats(result);
+            setError(null);
+        } catch {
+            setError("Could not load seats.");
+        } finally {
+            setLoading(false);
+        }
+    }, []);
 
-  // `refresh` is exposed so actions can force an update instead of
-  // waiting for the next poll — makes clicks feel instant.
-  return { seats, loading, error, refresh };
+    useEffect(() => {
+        fetchSeats();
+        const interval = setInterval(fetchSeats, POLL_INTERVAL_MS);
+        return () => clearInterval(interval);
+    }, [fetchSeats]);
+
+    return { seats, error, loading, refetch: fetchSeats };
 }

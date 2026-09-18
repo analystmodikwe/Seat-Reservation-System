@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { api } from "../api/client";
-import { Seat } from "../api/types";
+import type { Seat } from "../api/types";
 
 const POLL_INTERVAL_MS = 2000;
 

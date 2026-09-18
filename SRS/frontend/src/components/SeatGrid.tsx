@@ -1,5 +1,5 @@
 import { useSeats } from "../hooks/useSeats";
-import type { Seat } from "../api/types";
+
 
 interface SeatGridProps {
     email: string;

@@ -1,55 +1,45 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState, useCallback } from "react";
+import { api, ApiRequestError } from "../api/client";
+import { HoldResponse } from "../api/types";
 
-// Must match HOLD_EXPIRY_TIME_SECONDS in the backend config.
-// Only used for waitlist promotions, where the event log tells us
-// *when* the hold was created but not when it expires.
-const HOLD_WINDOW_MS = 60 * 1000;
+// Wraps the four hold actions (place/extend/confirm/release) with
+// shared loading/error state, so components don't repeat try/catch
+// boilerplate around every api call.
+export function useMyHold() {
+    const [hold, setHold] = useState<HoldResponse | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
 
-export interface StoredHold {
-  code: string;
-  seatNumber: number;
-  email: string;
-  expiresAt: number | null; // null = confirmed, never expires
-  confirmed: boolean;
-}
+    function run<T>(action: () => Promise<T>): Promise<T> {
+        setLoading(true);
+        setError(null);
+        return action().finally(() => setLoading(false));
+    }
 
-const STORAGE_KEY = "srs.holds";
+    function handleError(err: unknown): never {
+        setError(err instanceof ApiRequestError ? err.message : "Something went wrong.");
+        throw err;
+    }
 
-function load(): StoredHold[] {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
-  } catch {
-    return []; // corrupted storage shouldn't crash the app
-  }
-}
+    const placeHold = useCallback((email: string, seatNumber: number) =>
+        run(() => api.placeHold(email, seatNumber))
+            .then((result) => (setHold(result), result))
+            .catch(handleError), []);
 
-export function useMyHolds() {
-  const [holds, setHolds] = useState<StoredHold[]>(load);
+    const extendHold = useCallback((email: string, code: string) =>
+        run(() => api.extendHold(email, code))
+            .then((result) => (setHold(result), result))
+            .catch(handleError), []);
 
-  // Mirror state into localStorage on every change so a refresh
-  // doesn't lose the codes (the backend can't give them back).
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(holds));
-  }, [holds]);
+    const confirmHold = useCallback((email: string, code: string) =>
+        run(() => api.confirmHold(email, code))
+            .then((result) => (setHold(result), result))
+            .catch(handleError), []);
 
-  const upsert = useCallback((hold: StoredHold) => {
-    setHolds((prev) => [...prev.filter((h) => h.code !== hold.code), hold]);
-  }, []);
+    const releaseHold = useCallback((email: string, code: string) =>
+        run(() => api.releaseHold(email, code))
+            .then(() => setHold(null))
+            .catch(handleError), []);
 
-  const remove = useCallback((code: string) => {
-    setHolds((prev) => prev.filter((h) => h.code !== code));
-  }, []);
-
-  return { holds, upsert, remove, HOLD_WINDOW_MS };
-}
-
-// Re-renders once a second so countdowns tick. Kept separate from the
-// holds state — mixing them would rewrite localStorage every second.
-export function useNow(intervalMs = 1000) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), intervalMs);
-    return () => clearInterval(id);
-  }, [intervalMs]);
-  return now;
+    return { hold, error, loading, placeHold, extendHold, confirmHold, releaseHold };
 }

@@ -1,4 +1,4 @@
-import { Seat, HoldResponse, WaitlistEntry, EventLogEntry, ApiError } from "./types";
+import type { Seat, HoldResponse, WaitlistEntry, EventLogEntry, ApiError } from "./types";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
 
@@ -6,8 +6,11 @@ const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
 // way your backend's DomainError does — keeps the "which rule was
 // violated" story consistent end to end.
 export class ApiRequestError extends Error {
-    constructor(public rule: string, message: string) {
+    rule: string;
+
+    constructor(rule: string, message: string) {
         super(message);
+        this.rule = rule;
     }
 }
 

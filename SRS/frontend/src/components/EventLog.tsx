@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { api } from "../api/client";
-import { EventLogEntry } from "../api/types";
+import type { EventLogEntry } from "../api/types";
 
 export function EventLog() {
     const [entries, setEntries] = useState<EventLogEntry[]>([]);

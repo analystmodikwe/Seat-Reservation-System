@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { api, ApiRequestError } from "../api/client";
-import { WaitlistEntry } from "../api/types";
+import type { WaitlistEntry } from "../api/types";
 
 interface WaitlistPanelProps {
     email: string;

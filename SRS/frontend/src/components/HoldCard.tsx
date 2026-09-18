@@ -1,65 +1,75 @@
-import type { StoredHold } from "../hooks/useMyHolds";
+import { useState } from "react";
+import { useMyHold } from "../hooks/useMyHolds";
 
-interface Props {
-  hold: StoredHold;
-  now: number;
-  onExtend: (code: string) => void;
-  onConfirm: (code: string) => void;
-  onRelease: (code: string) => void;
-  busy: boolean;
-}
+export function HoldCard() {
+    const [email, setEmail] = useState("");
+    const [code, setCode] = useState("");
+    const { hold, error, loading, extendHold, confirmHold, releaseHold } = useMyHold();
 
-// Turn milliseconds into m:ss, clamped at zero so we never show "-1:59".
-function formatRemaining(ms: number): string {
-  const total = Math.max(0, Math.floor(ms / 1000));
-  const minutes = Math.floor(total / 60);
-  const seconds = String(total % 60).padStart(2, "0");
-  return `${minutes}:${seconds}`;
-}
+    async function handleAction(action: (email: string, code: string) => Promise<unknown>) {
+        try {
+            await action(email, code);
+        } catch {
+            // error is already captured in the hook's `error` state
+        }
+    }
 
-export function HoldCard({ hold, now, onExtend, onConfirm, onRelease, busy }: Props) {
-  const remaining = hold.expiresAt ? hold.expiresAt - now : 0;
-  const expired = !hold.confirmed && remaining <= 0;
-  // Visual warning once under 15 seconds
-  const urgent = !hold.confirmed && remaining > 0 && remaining < 15_000;
+    return (
+        <div className="panel">
+            <div className="email-field">
+                <label htmlFor="hold-email">Email</label>
+                <input
+                    id="hold-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                />
+            </div>
 
-  return (
-    <article className={`hold-card${urgent ? " hold-card--urgent" : ""}`}>
-      <header>
-        <strong>Seat {hold.seatNumber}</strong>
-        <code>{hold.code}</code>
-      </header>
+            <div className="email-field">
+                <label htmlFor="hold-code">Hold code</label>
+                <input
+                    id="hold-code"
+                    type="text"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.toUpperCase())}
+                    placeholder="ABC123"
+                    maxLength={6}
+                />
+            </div>
 
-      <p className="hold-status">
-        {hold.confirmed
-          ? "Confirmed — this seat is yours."
-          : expired
-            ? "Expired — the seat has been released."
-            : `Expires in ${formatRemaining(remaining)}`}
-      </p>
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+                <button
+                    onClick={() => handleAction(extendHold)}
+                    disabled={!email || !code || loading}
+                >
+                    Extend
+                </button>
+                <button
+                    onClick={() => handleAction(confirmHold)}
+                    disabled={!email || !code || loading}
+                >
+                    Confirm
+                </button>
+                <button
+                    onClick={() => handleAction(releaseHold)}
+                    disabled={!email || !code || loading}
+                >
+                    Release
+                </button>
+            </div>
 
-      <div className="hold-actions">
-        {/* Extend and confirm are pointless once confirmed or expired,
-            so they disappear rather than sitting there disabled. */}
-        {!hold.confirmed && !expired && (
-          <>
-            <button type="button" disabled={busy} onClick={() => onExtend(hold.code)}>
-              Extend
-            </button>
-            <button
-              type="button"
-              className="primary"
-              disabled={busy}
-              onClick={() => onConfirm(hold.code)}
-            >
-              Confirm
-            </button>
-          </>
-        )}
-        <button type="button" disabled={busy} onClick={() => onRelease(hold.code)}>
-          {expired ? "Dismiss" : "Release"}
-        </button>
-      </div>
-    </article>
-  );
+            {error && <p role="alert">{error}</p>}
+
+            {hold && (
+                <p>
+                    Seat {hold.seatNumber} — code {hold.code}
+                    {hold.expiresAt !== null
+                        ? ` — expires at ${new Date(hold.expiresAt).toLocaleTimeString()}`
+                        : " — confirmed, no expiry"}
+                </p>
+            )}
+        </div>
+    );
 }

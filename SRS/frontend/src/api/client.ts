@@ -1,67 +1,70 @@
-import type { Seat, HoldResponse, WaitlistEntry, EventLogEntry } from "./types";
+import { Seat, HoldResponse, WaitlistEntry, EventLogEntry, ApiError } from "./types";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
 
-// A custom Error subclass that carries the backend's `rule` string.
-// This lets components branch on the rule (e.g. show the waitlist
-// button when SEAT_UNAVAILABLE) instead of string-matching messages.
-export class ApiError extends Error {
-  rule: string;
-  message: string;
-
-  constructor(rule: string, message: string) {
-    super(message);
-    this.rule = rule;
-    this.message = message;
-    this.name = "ApiError";
-  }
+// Custom error class so components can check `error.rule` the same
+// way your backend's DomainError does — keeps the "which rule was
+// violated" story consistent end to end.
+export class ApiRequestError extends Error {
+    constructor(public rule: string, message: string) {
+        super(message);
+    }
 }
 
-async function request<T>(path: string, body?: unknown): Promise<T> {
-  let res: Response;
-
-  try {
-    res = await fetch(`${BASE_URL}${path}`, {
-      method: body ? "POST" : "GET",
-      headers: body ? { "Content-Type": "application/json" } : undefined,
-      body: body ? JSON.stringify(body) : undefined,
+async function request<T>(path: string, options?: RequestInit): Promise<T> {
+    const response = await fetch(`${BASE_URL}${path}`, {
+        headers: { "Content-Type": "application/json" },
+        ...options,
     });
-  } catch {
-    // fetch only rejects on network failure, never on a 4xx/5xx
-    throw new ApiError("NETWORK_ERROR", "Can't reach the server. Is the backend running?");
-  }
 
-  // Read as text first: some endpoints could return an empty body,
-  // and res.json() throws on an empty string.
-  const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
+    if (!response.ok) {
+        const body: ApiError = await response.json();
+        throw new ApiRequestError(body.rule, body.message);
+    }
 
-  if (!res.ok) {
-    throw new ApiError(data?.rule ?? "UNKNOWN_ERROR", data?.message ?? res.statusText);
-  }
+    // 204/empty responses don't have a body to parse
+    if (response.status === 204) {
+        return undefined as T;
+    }
 
-  return data as T;
+    return response.json();
 }
 
 export const api = {
-  getSeats: () => request<Seat[]>("/seats"),
+    getSeats: (): Promise<Seat[]> => request("/seats"),
 
-  placeHold: (email: string, seatNumber: number) =>
-    request<HoldResponse>("/holds", { email, seatNumber }),
+    placeHold: (email: string, seatNumber: number): Promise<HoldResponse> =>
+        request("/holds", {
+            method: "POST",
+            body: JSON.stringify({ email, seatNumber }),
+        }),
 
-  extendHold: (email: string, code: string) =>
-    request<HoldResponse>("/holds/extend", { email, code }),
+    extendHold: (email: string, code: string): Promise<HoldResponse> =>
+        request("/holds/extend", {
+            method: "POST",
+            body: JSON.stringify({ email, code }),
+        }),
 
-  confirmHold: (email: string, code: string) =>
-    request<HoldResponse>("/holds/confirm", { email, code }),
+    confirmHold: (email: string, code: string): Promise<HoldResponse> =>
+        request("/holds/confirm", {
+            method: "POST",
+            body: JSON.stringify({ email, code }),
+        }),
 
-  releaseHold: (email: string, code: string) =>
-    request<{ message: string }>("/holds/release", { email, code }),
+    releaseHold: (email: string, code: string): Promise<{ message: string }> =>
+        request("/holds/release", {
+            method: "POST",
+            body: JSON.stringify({ email, code }),
+        }),
 
-  joinWaitlist: (email: string) =>
-    request<{ message: string }>("/waitlist", { email }),
+    joinWaitlist: (email: string): Promise<{ message: string }> =>
+        request("/waitlist", {
+            method: "POST",
+            body: JSON.stringify({ email }),
+        }),
 
-  getWaitlist: () => request<WaitlistEntry[]>("/waitlist"),
+    getWaitlist: (): Promise<WaitlistEntry[]> => request("/waitlist"),
 
-  getEvents: () => request<EventLogEntry[]>("/events"),
+    getEventLog: (seatNumber?: number): Promise<EventLogEntry[]> =>
+        request(seatNumber ? `/events/seat/${seatNumber}` : "/events"),
 };

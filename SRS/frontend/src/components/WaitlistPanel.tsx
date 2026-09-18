@@ -30,13 +30,23 @@ export function WaitlistPanel({ email, onJoined }: WaitlistPanelProps) {
     }
 
     return (
-        <div className="panel">
-            <h3>Waitlist</h3>
-            {error && <p role="alert">{error}</p>}
-            <button onClick={handleJoin} disabled={!email || joining}>
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="mb-3 text-sm font-semibold text-slate-700">Waitlist</h3>
+            {error && (
+                <p role="alert" className="mb-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
+                    {error}
+                </p>
+            )}
+            <button
+                onClick={handleJoin}
+                disabled={!email || joining}
+                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
                 Join waitlist
             </button>
-            <p>{entries.length} {entries.length === 1 ? "person" : "people"} waiting</p>
+            <p className="mt-3 text-sm text-slate-500">
+                {entries.length} {entries.length === 1 ? "person" : "people"} waiting
+            </p>
         </div>
     );
 }

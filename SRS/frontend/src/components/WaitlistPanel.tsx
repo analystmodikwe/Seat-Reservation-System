@@ -1,40 +1,42 @@
-import type { WaitlistEntry } from "../api/types";
+import { useState, useEffect } from "react";
+import { api, ApiRequestError } from "../api/client";
+import { WaitlistEntry } from "../api/types";
 
-interface Props {
-  entries: WaitlistEntry[];
-  email: string;
-  canJoin: boolean; // false while any seat is still available
-  onJoin: () => void;
-  busy: boolean;
+interface WaitlistPanelProps {
+    email: string;
+    onJoined: () => void;
 }
 
-export function WaitlistPanel({ entries, email, canJoin, onJoin, busy }: Props) {
-  const myPosition = entries.findIndex((e) => e.email === email);
+export function WaitlistPanel({ email, onJoined }: WaitlistPanelProps) {
+    const [entries, setEntries] = useState<WaitlistEntry[]>([]);
+    const [error, setError] = useState<string | null>(null);
+    const [joining, setJoining] = useState(false);
 
-  return (
-    <section className="panel">
-      <h2>Waitlist</h2>
+    useEffect(() => {
+        api.getWaitlist().then(setEntries).catch(() => {});
+    }, []);
 
-      {myPosition >= 0 ? (
-        <p>You're number {myPosition + 1} in the queue.</p>
-      ) : (
-        <>
-          <button type="button" disabled={!canJoin || busy} onClick={onJoin}>
-            Join waitlist
-          </button>
-          {/* Explain the disabled state — the backend rejects joining
-              while seats are free, so don't let the user find out the hard way */}
-          {!canJoin && <p className="hint">Seats are still available — place a hold instead.</p>}
-        </>
-      )}
+    async function handleJoin() {
+        setJoining(true);
+        setError(null);
+        try {
+            await api.joinWaitlist(email);
+            onJoined();
+        } catch (err) {
+            setError(err instanceof ApiRequestError ? err.message : "Could not join waitlist.");
+        } finally {
+            setJoining(false);
+        }
+    }
 
-      <ol className="waitlist">
-        {entries.map((entry) => (
-          <li key={entry.email} className={entry.email === email ? "is-me" : ""}>
-            {entry.email}
-          </li>
-        ))}
-      </ol>
-    </section>
-  );
+    return (
+        <div className="panel">
+            <h3>Waitlist</h3>
+            {error && <p role="alert">{error}</p>}
+            <button onClick={handleJoin} disabled={!email || joining}>
+                Join waitlist
+            </button>
+            <p>{entries.length} {entries.length === 1 ? "person" : "people"} waiting</p>
+        </div>
+    );
 }
